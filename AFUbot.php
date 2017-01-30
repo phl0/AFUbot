@@ -154,6 +154,32 @@ function processMessage($message) {
           apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "$callsign not found"));
        }
     }
+    if (preg_match('/^\/qrz/', $text)) {
+       if (!preg_match('/^\/qrz /', $text)) {
+          apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /qrz callsign'));
+       }
+       preg_match("/^\/qrz ([\w-]+)/", $text, $results);
+       $callsign = strtoupper($results[1]);
+       $url = "https://www.qrz.com/db/".$callsign;
+       $ch = curl_init();
+       $timeout = 5;
+       curl_setopt($ch, CURLOPT_URL, $url);
+       curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+       curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+       $html = curl_exec($ch);
+       curl_close($ch);
+
+       $dom = new DOMDocument();
+       @$dom->loadHTML($html);
+       $content = $dom->getElementsByTagName('table')->item(0)->getElementsByTagName('tr')->item(0)->getElementsByTagName('td')->item(1)->nodeValue;
+       if(preg_match('/produced no results/', $content)) {
+          apiRequest("sendMessage", array('chat_id' => $chat_id, 'text' => $callsign." not found."));
+       } else {
+          $image = $dom->getElementById('mypic')->getAttribute('src');
+          apiRequest("sendMessage", array('chat_id' => $chat_id, 'text' => $url));
+          apiRequest("sendPhoto", array('chat_id' => $chat_id, 'photo' => $image));
+       }
+    }
     if (preg_match('/^\/aprs/', $text)) {
        if (!preg_match('/^\/aprs /', $text)) {
           apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /aprs callsign'));
