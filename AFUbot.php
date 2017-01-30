@@ -160,17 +160,21 @@ function processMessage($message) {
        }
        preg_match("/^\/aprs ([\w-]+)/", $text, $results);
        $callsign = strtoupper($results[1]);
-       ini_set( "user_agent", "Midnight Cheese (+http://midnightcheese.com/)" );
+       ini_set( "user_agent", "AFUbot (+https://github.com/phl0/AFUbot/)" );
        $url = "http://api.aprs.fi/api/get?name=".$callsign."&what=loc&apikey=".APRSFI_APIKEY."&format=json";
        $json = file_get_contents( $url, 0, null, null );
        $obj = json_decode($json, true);
        $entries = $obj['entries'];
-       foreach ($entries as $entry) {
-          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Last known position of ".$entry['name']));
-          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Latitude: ".$entry['lat'].", Longitude: ".$entry['lng']));
-          $time = gmdate("H:i:s d.m.Y", $entry['lasttime']);
-          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Time (UTC): ".$time));
-          apiRequest("sendLocation", array('chat_id' => $chat_id, 'latitude' => $entry['lat'], 'longitude' => $entry['lng']));
+       if ($obj['found'] != "0") {
+          foreach ($entries as $entry) {
+             apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Last known position of ".$entry['name']));
+             apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Latitude: ".$entry['lat'].", Longitude: ".$entry['lng']));
+             $time = gmdate("H:i:s d.m.Y", $entry['lasttime']);
+             apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Time (UTC): ".$time));
+             apiRequest("sendLocation", array('chat_id' => $chat_id, 'latitude' => $entry['lat'], 'longitude' => $entry['lng']));
+          }
+       } else {
+          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => $callsign." not found."));
        }
     }
   } else {
