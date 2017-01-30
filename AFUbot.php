@@ -2,6 +2,7 @@
 
 define('BOT_TOKEN', 'insertyourtokenhere');
 define('API_URL', 'https://api.telegram.org/bot'.BOT_TOKEN.'/');
+define('APRSFI_APIKEY', 'youraprsfiapikeyhere');
 
 function apiRequestWebhook($method, $parameters) {
   if (!is_string($method)) {
@@ -148,9 +149,28 @@ function processMessage($message) {
           $timestamp = $rows->item(1)->getElementsByTagName('td')->item(1)->nodeValue;
           $timestamp = preg_replace('/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/', '\4:\5:\6 UTC \3.\2.\1', $timestamp);
 
-          apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => "Last heard $callsign on ircDDB: ".$timestamp));
+          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Last heard $callsign on ircDDB: ".$timestamp));
        } else {
-          apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => "$callsign not found"));
+          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "$callsign not found"));
+       }
+    }
+    if (preg_match('/^\/aprs/', $text)) {
+       if (!preg_match('/^\/aprs /', $text)) {
+          apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /aprs callsign'));
+       }
+       preg_match("/^\/aprs ([\w-]+)/", $text, $results);
+       $callsign = strtoupper($results[1]);
+       ini_set( "user_agent", "Midnight Cheese (+http://midnightcheese.com/)" );
+       $url = "http://api.aprs.fi/api/get?name=".$callsign."&what=loc&apikey=".APRSFI_APIKEY."&format=json";
+       $json = file_get_contents( $url, 0, null, null );
+       $obj = json_decode($json, true);
+       $entries = $obj['entries'];
+       foreach ($entries as $entry) {
+          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Last known position of ".$entry['name']));
+          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Latitude: ".$entry['lat'].", Longitude: ".$entry['lng']));
+          $time = gmdate("H:i:s d.m.Y", $entry['lasttime']);
+          apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Time (UTC): ".$time));
+          apiRequest("sendLocation", array('chat_id' => $chat_id, 'latitude' => $entry['lat'], 'longitude' => $entry['lng']));
        }
     }
   } else {
