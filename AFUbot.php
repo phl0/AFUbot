@@ -139,11 +139,14 @@ function processMessage($message) {
     // incoming text message
     $text = $message['text'];
 
-    if (preg_match('/^\/dstarlh/', $text)) {
-       if (!preg_match('/^\/dstarlh /', $text)) {
+    if (preg_match('/^\/dstarlh/', $text) || preg_match("/^\/dstarlh@".BOT_NAME."/", $text)) {
+       if (!(preg_match('/^\/dstarlh /', $text)) && !(preg_match("/^\/dstarlh@".BOT_NAME." /", $text))) {
           apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /dstarlh callsign'));
        }
-       preg_match("/^\/dstarlh ([\w-]+)/", $text, $results);
+       preg_match("/^\/dstarlh@".BOT_NAME." ([\w-]+)/", $text, $results);
+       if (!isset($results[1])) {
+          preg_match("/^\/dstarlh ([\w-]+)/", $text, $results);
+       }
        $callsign = strtoupper($results[1]);
        $url = "http://status.ircddb.net/cgi-bin/ircddb-user?callsign=".$callsign;
        $ch = curl_init();
@@ -173,10 +176,13 @@ function processMessage($message) {
        }
     }
     if (preg_match('/^\/qrz/', $text)) {
-       if (!preg_match('/^\/qrz /', $text)) {
+       if (!(preg_match('/^\/qrz /', $text)) && !(preg_match("/^\/qrz@".BOT_NAME." /", $text))) {
           apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /qrz callsign'));
        }
-       preg_match("/^\/qrz ([\w-]+)/", $text, $results);
+       preg_match("/^\/qrz@".BOT_NAME." ([\w-]+)/", $text, $results);
+       if (!isset($results[1])) {
+          preg_match("/^\/qrz ([\w-]+)/", $text, $results);
+       }
        if (isset($results[1])) {
           $callsign = strtoupper($results[1]);
           $url = "https://www.qrz.com/db/".$callsign;
@@ -202,10 +208,13 @@ function processMessage($message) {
        }
     }
     if (preg_match('/^\/aprs/', $text)) {
-       if (!preg_match('/^\/aprs /', $text)) {
+       if (!(preg_match('/^\/aprs /', $text)) && !(preg_match("/^\/aprs@".BOT_NAME." /", $text))) {
           apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /aprs callsign'));
        }
-       preg_match("/^\/aprs ([\w-]+)/", $text, $results);
+       preg_match("/^\/aprs@".BOT_NAME." ([\w-]+)/", $text, $results);
+       if (!isset($results[1])) {
+          preg_match("/^\/aprs ([\w-]+)/", $text, $results);
+       }
        $callsign = strtoupper($results[1]);
        ini_set( "user_agent", "AFUbot (+https://github.com/phl0/AFUbot/)" );
        $url = "http://api.aprs.fi/api/get?name=".$callsign."&what=loc&apikey=".APRSFI_APIKEY."&format=json";
@@ -226,10 +235,13 @@ function processMessage($message) {
        }
     }
     if (preg_match('/^\/page/', $text)) {
-       if (!preg_match('/^\/page [\w-]+ .*/', $text)) {
+       if (!(preg_match('/^\/page [\w-]+ .*/', $text)) && !(preg_match("/^\/page@".BOT_NAME." /", $text))) {
           apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /page callsign text'));
        }
-       preg_match("/^\/page ([\w-]+) (.*)/", $text, $results);
+       preg_match("/^\/page@".BOT_NAME." ([\w-]+)/", $text, $results);
+       if (!isset($results[1])) {
+          preg_match("/^\/page ([\w-]+) (.*)/", $text, $results);
+       }
        $callsign = strtoupper($results[1]);
        $text = $username.": ".$results[2];
        ini_set( "user_agent", "AFUbot (+https://github.com/phl0/AFUbot/)" );
