@@ -1,8 +1,6 @@
 <?php
 
-define('BOT_TOKEN', 'insertyourtokenhere');
-define('API_URL', 'https://api.telegram.org/bot'.BOT_TOKEN.'/');
-define('APRSFI_APIKEY', 'youraprsfiapikeyhere');
+require_once('config.inc.php');
 
 function apiRequestWebhook($method, $parameters) {
   if (!is_string($method)) {
@@ -212,7 +210,7 @@ function processMessage($message) {
        preg_match("/^\/page ([\w-]+) (.*)/", $text, $results);
        $callsign = strtoupper($results[1]);
        $text = $username.": ".$results[2];
-       ini_set( "user_agent", "AFUbot (+https://github.com/phl0/AFUbot)" );
+       ini_set( "user_agent", "AFUbot (+https://github.com/phl0/AFUbot/)" );
        $data = array(
           'text' => $text,
           'callSignNames' => array(
@@ -223,7 +221,7 @@ function processMessage($message) {
           ),
           'emergency' => 'false'
        );
-       $url = 'http://setthehampagerurlhere:8080/calls';
+       $url = DAPNET_URL;
 
        $content = json_encode($data);
 
@@ -235,7 +233,7 @@ function processMessage($message) {
        curl_setopt($curl, CURLOPT_POST, true);
        curl_setopt($curl, CURLOPT_USERAGENT, "AFUbot/0.1");
        curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-       curl_setopt($curl, CURLOPT_USERPWD, "hampagerusername:hampagerpassword");
+       curl_setopt($curl, CURLOPT_USERPWD, DAPNET_USERNAME.":".DAPNET_PASSWORD);
        curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
 
        $json_response = curl_exec($curl);
@@ -253,9 +251,6 @@ function processMessage($message) {
     apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => 'I understand only text messages'));
   }
 }
-
-
-define('WEBHOOK_URL', 'setyourwebhookurlhere');
 
 if (php_sapi_name() == 'cli') {
   // if run from console, set or delete webhook
