@@ -2,6 +2,18 @@
 
 require_once('config.inc.php');
 
+function logEntry($string) {
+   if(!isset($string)) {
+      error_log("AFUbot: log entry must be set\n");
+      return;
+   }
+   $file = fopen(LOGFILE, "a");
+   $time = date("d.m.Y H:i:s");
+   $line = $time." ".$string;
+   fputs($file, $line."\n");
+   fclose($file);
+}
+
 function apiRequestWebhook($method, $parameters) {
   if (!is_string($method)) {
     error_log("Method name must be a string\n");
@@ -118,6 +130,11 @@ function processMessage($message) {
   $id = $message['from']['id'];
   $username = $message['from']['username'];
   $chat_id = $message['chat']['id'];
+  if(isset($message['chat']['title'])) {
+     $title = $message['chat']['title'];
+  } else {
+     $title = "n/a";
+  }
   if (isset($message['text'])) {
     // incoming text message
     $text = $message['text'];
@@ -150,6 +167,7 @@ function processMessage($message) {
           $timestamp = preg_replace('/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/', '\4:\5:\6 UTC \3.\2.\1', $timestamp);
 
           apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Last heard $callsign on ircDDB: ".$timestamp));
+          logEntry("Chat: ".$title." (".$chat_id."), Username: ".$username.", Command: /dstarlh ".$callsign);
        } else {
           apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "$callsign not found"));
        }
@@ -159,25 +177,28 @@ function processMessage($message) {
           apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /qrz callsign'));
        }
        preg_match("/^\/qrz ([\w-]+)/", $text, $results);
-       $callsign = strtoupper($results[1]);
-       $url = "https://www.qrz.com/db/".$callsign;
-       $ch = curl_init();
-       $timeout = 5;
-       curl_setopt($ch, CURLOPT_URL, $url);
-       curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-       curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
-       $html = curl_exec($ch);
-       curl_close($ch);
+       if (isset($results[1])) {
+          $callsign = strtoupper($results[1]);
+          $url = "https://www.qrz.com/db/".$callsign;
+          $ch = curl_init();
+          $timeout = 5;
+          curl_setopt($ch, CURLOPT_URL, $url);
+          curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+          curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+          $html = curl_exec($ch);
+          curl_close($ch);
 
-       $dom = new DOMDocument();
-       @$dom->loadHTML($html);
-       $content = $dom->getElementsByTagName('table')->item(0)->getElementsByTagName('tr')->item(0)->getElementsByTagName('td')->item(1)->nodeValue;
-       if(preg_match('/produced no results/', $content)) {
-          apiRequest("sendMessage", array('chat_id' => $chat_id, 'text' => $callsign." not found."));
-       } else {
-          $image = $dom->getElementById('mypic')->getAttribute('src');
-          apiRequest("sendMessage", array('chat_id' => $chat_id, 'text' => $url));
-          apiRequest("sendPhoto", array('chat_id' => $chat_id, 'photo' => $image));
+          $dom = new DOMDocument();
+          @$dom->loadHTML($html);
+          $content = $dom->getElementsByTagName('table')->item(0)->getElementsByTagName('tr')->item(0)->getElementsByTagName('td')->item(1)->nodeValue;
+          if(preg_match('/produced no results/', $content)) {
+             apiRequest("sendMessage", array('chat_id' => $chat_id, 'text' => $callsign." not found."));
+          } else {
+             $image = $dom->getElementById('mypic')->getAttribute('src');
+             apiRequest("sendMessage", array('chat_id' => $chat_id, 'text' => $url));
+             apiRequest("sendPhoto", array('chat_id' => $chat_id, 'photo' => $image));
+             logEntry("Chat: ".$title." (".$chat_id."), Username: ".$username.", Command: /qrz ".$callsign);
+          }
        }
     }
     if (preg_match('/^\/aprs/', $text)) {
@@ -198,6 +219,7 @@ function processMessage($message) {
              $time = gmdate("H:i:s d.m.Y", $entry['lasttime']);
              apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Time (UTC): ".$time));
              apiRequest("sendLocation", array('chat_id' => $chat_id, 'latitude' => $entry['lat'], 'longitude' => $entry['lng']));
+             logEntry("Chat: ".$title." (".$chat_id."), Username: ".$username.", Command: /aprs ".$callsign);
           }
        } else {
           apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => $callsign." not found."));
@@ -241,6 +263,7 @@ function processMessage($message) {
        $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
        curl_close($curl);
+       logEntry("Chat: ".$title." (".$chat_id."), Username: ".$username.", Command: /page ".$callsign." ".$text);
        if ($status == 201) {
              apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Success!"));
        } else {
