@@ -8,4 +8,6 @@ define('APRSFI_APIKEY', 'insertyouraprsfiapikeyhere');
 define('DAPNET_USERNAME', 'insertyourusernamefordapnetportal');
 define('DAPNET_PASSWORD', 'insertyourpasswordfordapnetportal');
 define('DAPNET_URL', 'insertdapnetRESTinterfaceurlhere');
+
+define('LOGFILE', '/tmp/telegrambot.log');
 ?>
