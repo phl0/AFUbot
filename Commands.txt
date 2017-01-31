@@ -1,0 +1,4 @@
+dstarlh - Show last heard entry from ircDDB
+aprs - Show last known position from aprs.fi
+qrz - Looup user at qrz.com
+page - Send DAPNET call to pager via DB0SDA master
