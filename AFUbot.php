@@ -117,6 +117,8 @@ function apiRequestJson($method, $parameters) {
 function processMessage($message) {
   // process incoming message
   $message_id = $message['message_id'];
+  $id = $message['from']['id'];
+  $username = $message['from']['username'];
   $chat_id = $message['chat']['id'];
   if (isset($message['text'])) {
     // incoming text message
@@ -201,6 +203,50 @@ function processMessage($message) {
           }
        } else {
           apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => $callsign." not found."));
+       }
+    }
+    if (preg_match('/^\/page/', $text)) {
+       if (!preg_match('/^\/page [\w-]+ .*/', $text)) {
+          apiRequestWebhook("sendMessage", array('chat_id' => $chat_id, "text" => 'Usage: /page callsign text'));
+       }
+       preg_match("/^\/page ([\w-]+) (.*)/", $text, $results);
+       $callsign = strtoupper($results[1]);
+       $text = $username.": ".$results[2];
+       ini_set( "user_agent", "AFUbot (+https://github.com/phl0/AFUbot)" );
+       $data = array(
+          'text' => $text,
+          'callSignNames' => array(
+             $callsign
+          ),
+          'transmitterGroupNames' => array(
+             'All'
+          ),
+          'emergency' => 'false'
+       );
+       $url = 'http://setthehampagerurlhere:8080/calls';
+
+       $content = json_encode($data);
+
+       $curl = curl_init($url);
+       curl_setopt($curl, CURLOPT_HEADER, false);
+       curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+       curl_setopt($curl, CURLOPT_HTTPHEADER,
+                     array("Content-type: application/json"));
+       curl_setopt($curl, CURLOPT_POST, true);
+       curl_setopt($curl, CURLOPT_USERAGENT, "AFUbot/0.1");
+       curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+       curl_setopt($curl, CURLOPT_USERPWD, "hampagerusername:hampagerpassword");
+       curl_setopt($curl, CURLOPT_POSTFIELDS, $content);
+
+       $json_response = curl_exec($curl);
+
+       $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+
+       curl_close($curl);
+       if ($status == 201) {
+             apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Success!"));
+       } else {
+             apiRequest("sendMessage", array('chat_id' => $chat_id, "text" => "Error: ".$status));
        }
     }
   } else {
